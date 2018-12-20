@@ -7,10 +7,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.*;
 
-import microsoft.aspnet.signalr.client.LogLevel;
-import microsoft.aspnet.signalr.client.Logger;
-import microsoft.aspnet.signalr.client.Platform;
-import microsoft.aspnet.signalr.client.SignalRFuture;
+import com.google.gson.JsonElement;
+import microsoft.aspnet.signalr.client.*;
 import microsoft.aspnet.signalr.client.http.android.AndroidPlatformComponent;
 import microsoft.aspnet.signalr.client.hubs.HubConnection;
 import microsoft.aspnet.signalr.client.hubs.HubProxy;
@@ -76,7 +74,7 @@ public class MainActivitySingalROld extends AppCompatActivity {
             @Override
             public void log(String message, LogLevel level) {
 
-                Log.d("HubConnection",message);
+//                Log.d("HubConnection Logger",message);
             }
         });
         String SERVER_HUB_CHAT = "moveShape";
@@ -90,6 +88,43 @@ public class MainActivitySingalROld extends AppCompatActivity {
             Log.e("SimpleSignalR", e.toString());
             return;
         }
+
+
+        mHubConnection.error(new ErrorCallback() {
+
+            @Override
+            public void onError(Throwable error) {
+                error.printStackTrace();
+            }
+        });
+
+        // Subscribe to the connected event
+        mHubConnection.connected(new Runnable() {
+
+            @Override
+            public void run() {
+                System.out.println("CONNECTED");
+            }
+        });
+
+        mHubConnection.reconnected(new Runnable() {
+
+            @Override
+            public void run() {
+
+                System.out.println("RECONNECTED");
+            }
+        });
+        // Subscribe to the closed event
+        mHubConnection.closed(new Runnable() {
+
+            @Override
+            public void run() {
+
+                System.out.println("DISCONNECTED");
+            }
+        });
+
         String mConnectionID = mHubConnection.getConnectionId();
         Log.d("MainActivitySingalROld","mConnectionID "+mConnectionID);
 //        sendMessage("Hello from BNK!");
@@ -97,7 +132,27 @@ public class MainActivitySingalROld extends AppCompatActivity {
 //        String CLIENT_METHOD_BROADAST_MESSAGE = "broadcastMessage";
         String CLIENT_METHOD_BROADAST_MESSAGE = "NewMessage";
 
-        mHubProxy.subscribe(CLIENT_METHOD_BROADAST_MESSAGE);
+        mHubConnection.received(new MessageReceivedHandler() {
+            @Override
+            public void onMessageReceived(JsonElement jsonElement) {
+                Log.d("onMessageReceived",jsonElement.toString());
+
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        // Stuff that updates the UI
+                        arrayAdapter.add(jsonElement.toString());
+                        arrayAdapter.notifyDataSetChanged();
+
+                    }
+                });
+
+            }
+        });
+
+//        mHubProxy.subscribe(CLIENT_METHOD_BROADAST_MESSAGE);
         mHubProxy.on(CLIENT_METHOD_BROADAST_MESSAGE,
                 new SubscriptionHandler1<Object>() {
                     @Override
@@ -110,6 +165,7 @@ public class MainActivitySingalROld extends AppCompatActivity {
 //                                Toast.makeText(getApplicationContext(), finalMsg, Toast.LENGTH_SHORT).show();
 //                            }
 //                        });
+                        Log.d("on",msg.toString());
                         arrayAdapter.add(msg.toString());
                         arrayAdapter.notifyDataSetChanged();
                     }
